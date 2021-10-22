@@ -18,7 +18,7 @@ class ReadCmd(object):
         self.indata = ''
         self.showtxt = showtxt
         self.history_cmd=[]
-        self.action={'0x8':self.do_delete, '0x1b0x5b0x41':self.do_previous_cmd,'0x1b0x5b0x42':self.do_next_cmd}
+        self.action={'0x7f':self.do_delete, '0x1b0x5b0x33':self.do_clean, '0x1b0x5b0x41':self.do_previous_cmd,'0x1b0x5b0x42':self.do_next_cmd}
     
     def strToHexStr(str):
         ret=''
@@ -26,6 +26,12 @@ class ReadCmd(object):
             ret+= '%#x'%ord(ch)
         return ret
     
+    def _is_exist(self, lists, data):
+        for d in lists:
+            if d ==  data:
+                return True
+        return False
+
     def clearShowNew(self, old, new):
         if len(old):
             print(chr(27) + "[%dD" %(len(old)), end='', flush=True)
@@ -39,6 +45,8 @@ class ReadCmd(object):
             return
         if len(data) == 0:
             return
+        if self._is_exist(self.history_cmd, data):
+            return
         self.history_cmd.append(data)
         if len(self.history_cmd) > 100:
             self.history_cmd.pop(0)
@@ -49,12 +57,17 @@ class ReadCmd(object):
         print(chr(27) + "[1D", end='', flush=True)
         print(chr(27) + "[K", end='', flush=True)
         self.indata = self.indata[:-1]
+    
+    def do_clean(self):
+        if len(self.indata) == 0:
+            return
+        old = self.indata
+        self.indata = ''
+        self.clearShowNew(old, self.indata)
 
     def do_previous_cmd(self):
         if len(self.history_cmd) == 0:
             return
-        if len(self.indata):
-            self.history_cmd.insert(0, self.indata)
         old = self.indata
         self.indata = self.history_cmd.pop()
         self.history_cmd.insert(0, self.indata)
@@ -63,8 +76,6 @@ class ReadCmd(object):
     def do_next_cmd(self):
         if len(self.history_cmd) == 0:
             return
-        if len(self.indata):
-            self.history_cmd.append(self.indata)
         old = self.indata
         self.indata = self.history_cmd.pop(0)
         self.history_cmd.append(self.indata)
@@ -151,7 +162,7 @@ class multi_ssh(object):
                 try:
                     out = client.run_command(data, read_timeout=3)
                 except Exception as e:
-                    self.print_line("run_command: {0}".format(e))
+                    print("run_command: {0}".format(e))
                     continue
                 for host_out in out:
                     if host_out.stderr is not None:
@@ -194,7 +205,7 @@ def help(argv, param):
 
 def argv_parse(argv):
     opts, args = getopt.getopt(argv[1:], "f:i:u:w:p:", ["file=",'ips=', 'user=', 'password='])
-    param = {'user':"root", 'password':'ruijie1688', 'ips':[], 'port':9622}
+    param = {'user':"root", 'password':'test', 'ips':[], 'port':22}
     if len(opts) == 0 and len(args):
         help(argv, param)
         return None

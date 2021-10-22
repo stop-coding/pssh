@@ -12,3 +12,7 @@ the tool of parallel-ssh for python
        -w,--password password of ssh
        -p,--port     port of ssh
        exp: multi_ssh.py -i 127.0.0.1,192.168.1.3 -p 22 -u root -w myrootpsw
+# Exit
+    ctrl + C
+    or
+    exit    to end.
