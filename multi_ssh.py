@@ -134,7 +134,7 @@ class multi_ssh(object):
     def run(self):
         try:
             if len(self.myhosts) == 0:
-                print('host is empty')
+                print('error: host is empty')
                 return None
             client = ParallelSSHClient(hosts= self.myhosts, user=self.user, password=self.password, port=self.port)
             io = ReadCmd(self.cmdHead)
@@ -147,8 +147,12 @@ class multi_ssh(object):
                 if type != ReadCmd.KEY_ENTER:
                     pre_cmd = data
                     continue
-                print(data)
-                out = client.run_command(data, read_timeout=3)
+                out=[]
+                try:
+                    out = client.run_command(data, read_timeout=3)
+                except Exception as e:
+                    self.print_line("run_command: {0}".format(e))
+                    continue
                 for host_out in out:
                     if host_out.stderr is not None:
                         for line in host_out.stderr:
@@ -167,6 +171,7 @@ def read_hosts_on_file(path):
         txt = f.read()
     hosts = []
     for host in txt.split('\n'):
+        # support hosts of zookeeper conf
         if re.match(r'server\.(.*)=(.*:)?', host) is not None:
             (_, addr_ports) = host.split('=', 1)
             (host, _) = addr_ports.split(';')
@@ -179,13 +184,13 @@ def read_hosts_on_file(path):
     return hosts
 
 def help(argv, param):
-    print("usage: %s -f [config txt] -h [ssh hosts]" %(argv[0]))
-    print("       -f,--file     ip address in file" )
+    print("usage: %s -f [config txt] -i [ssh hosts]" %(argv[0]))
+    print("       -f,--file     ip address in file, support hosts of zookeeper conf." )
     print("       -i,--ips     ip address")
     print("       -u,--user     user name of ssh, default root")
     print("       -w,--password password of ssh")
     print("       -p,--port     port of ssh")
-    print("       exp: %s -i 127.0.0.1,192.168.1.3 -p 22" %(argv[0]))
+    print("       exp: %s -i 127.0.0.1,192.168.1.3 -p 22 -u root -w myrootpsw" %(argv[0]))
 
 def argv_parse(argv):
     opts, args = getopt.getopt(argv[1:], "f:i:u:w:p:", ["file=",'ips=', 'user=', 'password='])
@@ -214,6 +219,7 @@ def argv_parse(argv):
     return param
 
 def main(argv):
+    param = None
     try:
         param = argv_parse(argv)
         if param is None:
@@ -224,6 +230,7 @@ def main(argv):
             help(argv, param)
     except Exception as e:
         print("main error: {0}".format(e))
+        help(argv, param)
     finally:
         print("exit.")
 
